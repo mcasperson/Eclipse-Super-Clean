@@ -1,5 +1,6 @@
 package superclean.actions;
 
+import org.eclipse.core.resources.IWorkspaceRunnable;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.resources.WorkspaceJob;
@@ -58,10 +59,10 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 			public void done() {
 				this.setDoneCount(this.getDoneCount() + 1);
 				if (this.getDoneCount() == this.getCount()) {
-					/*MessageDialog.openInformation(
+					MessageDialog.openInformation(
 							window.getShell(),
 							"Super Clean",
-							"All projects and servers have been cleaned");*/	
+							"All projects and servers have been cleaned");	
 				}
 			}
 		};
@@ -73,12 +74,20 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 
 			@Override
 			public void done() {
-				/*
-				 * When the projects are clean, publish them to the servers
-				 */
 				if (servers.length != 0) {
-					for (final IServer server : servers) {
-						server.publish(IServer.PUBLISH_CLEAN, publishMonitor);
+					try {
+						ResourcesPlugin.getWorkspace().run(new IWorkspaceRunnable() {
+								@Override
+								public void run(final IProgressMonitor workspaceProgress) throws CoreException {									
+									for (final IServer server : servers) {
+										server.publish(IServer.PUBLISH_CLEAN, workspaceProgress);
+									}						
+								}
+							}, publishMonitor
+						);
+					} catch (CoreException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
 				} else {
 					publishMonitor.done();
@@ -89,44 +98,55 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 		/*
 		 * This will be called as the servers are stopped
 		 */
-		final CountOperationListener stopProgress = new CountOperationListener(servers.length) {
+		final ProgressMonitor stopProgressMonitor = new ProgressMonitor() {
 
 			@Override
-			public void done(IStatus arg0) {
-				this.setDoneCount(this.getDoneCount() + 1);
-				if (this.getDoneCount() == this.getCount()) {
-					/*
-					 * When all the servers are stopped, clean the projects
-					 */
-					final WorkspaceJob cleanJob = new WorkspaceJob("Clean All") {
-			            public boolean belongsTo(Object family) {
-			                return ResourcesPlugin.FAMILY_MANUAL_BUILD.equals(family);
-			            }
-			            
-			            public IStatus runInWorkspace(IProgressMonitor monitor) throws CoreException {
-			            	ResourcesPlugin.getWorkspace().build(IncrementalProjectBuilder.CLEAN_BUILD, monitor);
-			            	cleanProgress.done();
-			            	return Status.OK_STATUS;
-			            }
-			        };
-			        
-			        cleanJob.setRule(ResourcesPlugin.getWorkspace().getRuleFactory().buildRule());
-			        cleanJob.setUser(true);
-			        cleanJob.setProperty(IProgressConstants2.SHOW_IN_TASKBAR_ICON_PROPERTY, Boolean.TRUE);
-			        cleanJob.schedule();
-				} 
-			}				
+			public void done() {
+				try {
+					ResourcesPlugin.getWorkspace().run(new IWorkspaceRunnable() {
+							@Override
+							public void run(IProgressMonitor arg0) throws CoreException {
+								ResourcesPlugin.getWorkspace().build(IncrementalProjectBuilder.CLEAN_BUILD, arg0);								
+							}
+						}, cleanProgress);
+				} catch (CoreException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}				
+			}
 		};
 		
 		/*
 		 * Initiate the process by stopping the servers
 		 */
 		if (servers.length != 0) {
-			for (final IServer server : servers) {
-				server.stop(false, stopProgress);
+			try {
+				ResourcesPlugin.getWorkspace().run(new IWorkspaceRunnable() {
+						@Override
+						public void run(final IProgressMonitor workspaceProgress) throws CoreException {
+							final CountOperationListener stopProgress = new CountOperationListener(servers.length) {
+
+								@Override
+								public void done(IStatus arg0) {
+									this.setDoneCount(this.getDoneCount() + 1);
+									if (this.getDoneCount() == this.getCount()) {
+										workspaceProgress.done();
+									}
+								}
+							};
+							
+							for (final IServer server : servers) {
+								server.stop(false, stopProgress);
+							}						
+						}
+					}, stopProgressMonitor
+				);
+			} catch (CoreException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		} else {
-			stopProgress.done(null);
+			stopProgressMonitor.done();
 		}
 	}
 

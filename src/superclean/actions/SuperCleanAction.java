@@ -52,23 +52,20 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 		final IServer[] servers = ServerCore.getServers();
 		
 		/*
-		 * This will be called as the servers are cleaned
+		 * This will be called as the servers are cleaned, and displays a "all done" message
 		 */
 		final CountProgressMonitor publishMonitor = new CountProgressMonitor(servers.length){
 			@Override
 			public void done() {
 				this.setDoneCount(this.getDoneCount() + 1);
 				if (this.getDoneCount() == this.getCount()) {
-					MessageDialog.openInformation(
-							window.getShell(),
-							"Super Clean",
-							"All projects and servers have been cleaned");	
+					displayMessage("All projects and servers have been cleaned");
 				}
 			}
 		};
 		
 		/*
-		 * This will be called as the projects are cleaned
+		 * This will be called as the projects are cleaned, and initiates a clean of the servers
 		 */
 		final ProgressMonitor cleanProgress = new ProgressMonitor() {
 
@@ -86,32 +83,32 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 							}, publishMonitor
 						);
 					} catch (CoreException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						displayMessage("An exception was thrown when attempting to clean the servers");
 					}
 				} else {
+					/*
+					 * If there were no servers, trigger the done method on the monitor manually
+					 */
 					publishMonitor.done();
 				}
 			}
 		};
 		
 		/*
-		 * This will be called as the servers are stopped
+		 * This will be called as the servers are stopped, and initiates a clean of the projects
 		 */
 		final ProgressMonitor stopProgressMonitor = new ProgressMonitor() {
-
 			@Override
 			public void done() {
 				try {
 					ResourcesPlugin.getWorkspace().run(new IWorkspaceRunnable() {
 							@Override
-							public void run(IProgressMonitor arg0) throws CoreException {
-								ResourcesPlugin.getWorkspace().build(IncrementalProjectBuilder.CLEAN_BUILD, arg0);								
+							public void run(IProgressMonitor workspaceProgress) throws CoreException {
+								ResourcesPlugin.getWorkspace().build(IncrementalProjectBuilder.CLEAN_BUILD, workspaceProgress);								
 							}
 						}, cleanProgress);
 				} catch (CoreException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					displayMessage("An exception was thrown when attempting to clean the projects");
 				}				
 			}
 		};
@@ -142,12 +139,25 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 					}, stopProgressMonitor
 				);
 			} catch (CoreException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				displayMessage("An exception was thrown when attempting to stop the servers");
 			}
 		} else {
+			/*
+			 * If there were no servers, trigger the done method on the monitor manually
+			 */
 			stopProgressMonitor.done();
 		}
+	}
+	
+	/**
+	 * Displays a popup with the provided message
+	 * @param message The message to display
+	 */
+	private void displayMessage(final String message) {
+		MessageDialog.openInformation(
+				window.getShell(),
+				"Super Clean",
+				message);
 	}
 
 	/**

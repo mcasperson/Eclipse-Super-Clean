@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            label="Sample Action Set"
+            visible="true"
+            id="SuperClean.actionSet">
+         <menu
+               label="Super &amp;Clean"
+               id="sampleMenu">
+            <separator
+                  name="sampleGroup">
+            </separator>
+         </menu>
+         <action
+               label="&amp;Super Clean"
+               icon="icons/sample.gif"
+               class="superclean.actions.SampleAction"
+               tooltip="Clean all projects and servers"
+               menubarPath="sampleMenu/sampleGroup"
+               toolbarPath="sampleGroup"
+               id="superclean.actions.SampleAction">
+         </action>
+      </actionSet>
+   </extension>
+
+</plugin>

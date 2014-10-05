@@ -52,19 +52,6 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 		final IServer[] servers = ServerCore.getServers();
 		
 		/*
-		 * This will be called as the servers are cleaned, and displays a "all done" message
-		 */
-		final CountProgressMonitor publishMonitor = new CountProgressMonitor(servers.length){
-			@Override
-			public void done() {
-				this.setDoneCount(this.getDoneCount() + 1);
-				if (this.getDoneCount() == this.getCount()) {
-					displayMessage("All projects and servers have been cleaned");
-				}
-			}
-		};
-		
-		/*
 		 * This will be called as the projects are cleaned, and initiates a clean of the servers
 		 */
 		final ProgressMonitor cleanProgress = new ProgressMonitor() {
@@ -73,6 +60,15 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 			public void done() {
 				if (servers.length != 0) {
 					try {
+						final CountProgressMonitor publishMonitor = new CountProgressMonitor(servers.length){
+							@Override
+							public void done() {
+								if (this.getDoneCount().incrementAndGet() == this.getCount()) {
+									displayMessage("All projects and servers have been cleaned");
+								}
+							}
+						};
+						
 						ResourcesPlugin.getWorkspace().run(new IWorkspaceRunnable() {
 								@Override
 								public void run(final IProgressMonitor workspaceProgress) throws CoreException {									
@@ -89,7 +85,7 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 					/*
 					 * If there were no servers, trigger the done method on the monitor manually
 					 */
-					publishMonitor.done();
+					displayMessage("All projects and servers have been cleaned");
 				}
 			}
 		};
@@ -125,8 +121,7 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 
 								@Override
 								public void done(IStatus arg0) {
-									this.setDoneCount(this.getDoneCount() + 1);
-									if (this.getDoneCount() == this.getCount()) {
+									if (this.getDoneCount().incrementAndGet() == this.getCount()) {
 										workspaceProgress.done();
 									}
 								}

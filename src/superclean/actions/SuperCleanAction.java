@@ -69,14 +69,15 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 
 			@Override
 			public void done() {
-			
-
-				
 				/*
 				 * When the projects are clean, publish them to the servers
 				 */
-				for (final IServer server : servers) {
-					server.publish(IServer.PUBLISH_CLEAN, publishMonitor);
+				if (servers.length != 0) {
+					for (final IServer server : servers) {
+						server.publish(IServer.PUBLISH_CLEAN, publishMonitor);
+					}
+				} else {
+					publishMonitor.done();
 				}
 			}
 		};
@@ -107,8 +108,12 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 		/*
 		 * Initiate the process by stopping the servers
 		 */
-		for (final IServer server : servers) {
-			server.stop(false, stopProgress);
+		if (servers.length != 0) {
+			for (final IServer server : servers) {
+				server.stop(false, stopProgress);
+			}
+		} else {
+			stopProgress.done(null);
 		}
 	}
 

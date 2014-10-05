@@ -18,11 +18,11 @@
          <action
                label="&amp;Super Clean"
                icon="icons/sample.gif"
-               class="superclean.actions.SampleAction"
+               class="superclean.actions.SuperCleanAction"
                tooltip="Clean all projects and servers"
                menubarPath="sampleMenu/sampleGroup"
                toolbarPath="sampleGroup"
-               id="superclean.actions.SampleAction">
+               id="superclean.actions.SuperCleanAction">
          </action>
       </actionSet>
    </extension>

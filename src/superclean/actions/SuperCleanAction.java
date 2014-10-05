@@ -2,15 +2,19 @@ package superclean.actions;
 
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.resources.WorkspaceJob;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.SubProgressMonitor;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
+import org.eclipse.ui.progress.IProgressConstants2;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.wst.server.core.*;
 
@@ -54,10 +58,10 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 			public void done() {
 				this.setDoneCount(this.getDoneCount() + 1);
 				if (this.getDoneCount() == this.getCount()) {
-					MessageDialog.openInformation(
+					/*MessageDialog.openInformation(
 							window.getShell(),
 							"Super Clean",
-							"All projects and servers have been cleaned");	
+							"All projects and servers have been cleaned");*/	
 				}
 			}
 		};
@@ -94,15 +98,24 @@ public class SuperCleanAction implements IWorkbenchWindowActionDelegate {
 					/*
 					 * When all the servers are stopped, clean the projects
 					 */
-					try {
-						ResourcesPlugin.getWorkspace().build(IncrementalProjectBuilder.CLEAN_BUILD, cleanProgress);
-					} catch (final CoreException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-				
-			}
+					final WorkspaceJob cleanJob = new WorkspaceJob("Clean All") {
+			            public boolean belongsTo(Object family) {
+			                return ResourcesPlugin.FAMILY_MANUAL_BUILD.equals(family);
+			            }
+			            
+			            public IStatus runInWorkspace(IProgressMonitor monitor) throws CoreException {
+			            	ResourcesPlugin.getWorkspace().build(IncrementalProjectBuilder.CLEAN_BUILD, monitor);
+			            	cleanProgress.done();
+			            	return Status.OK_STATUS;
+			            }
+			        };
+			        
+			        cleanJob.setRule(ResourcesPlugin.getWorkspace().getRuleFactory().buildRule());
+			        cleanJob.setUser(true);
+			        cleanJob.setProperty(IProgressConstants2.SHOW_IN_TASKBAR_ICON_PROPERTY, Boolean.TRUE);
+			        cleanJob.schedule();
+				} 
+			}				
 		};
 		
 		/*
